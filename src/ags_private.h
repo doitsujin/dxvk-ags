@@ -16,6 +16,11 @@
 
 #include "./dxvk/dxvk_interfaces.h"
 
+// AGS 5.0 headers don#t define this
+#ifndef AGS_MAKE_VERSION
+#define AGS_MAKE_VERSION(major, minor, patch) (( major << 22) | (minor << 12) | patch)
+#endif
+
 #define BUILD_VERSION \
   AGS_MAKE_VERSION(AMD_AGS_VERSION_MAJOR, AMD_AGS_VERSION_MINOR, AMD_AGS_VERSION_PATCH)
 

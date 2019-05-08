@@ -38,6 +38,7 @@ AMD_AGS_API AGSReturnCode agsDriverExtensionsDX12_DeInit(
 #endif
 
 
+#if BUILD_VERSION >= AGS_MAKE_VERSION(5, 1, 0)
 AMD_AGS_API AGSReturnCode __stdcall agsDriverExtensionsDX12_PushMarker(
         AGSContext*                   context,
         ID3D12GraphicsCommandList*    commandList,
@@ -62,5 +63,6 @@ AMD_AGS_API AGSReturnCode __stdcall agsDriverExtensionsDX12_SetMarker(
   std::cerr << "agsDriverExtensionsDX12_SetMarker: Not implemented" << std::endl;
   return AGS_ERROR_LEGACY_DRIVER;
 }
-  
+#endif
+
 }

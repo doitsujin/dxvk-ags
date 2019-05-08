@@ -26,6 +26,37 @@ static unsigned int dxvkCalcMaxDrawCount(
 }
 
 
+static AGSReturnCode dxvkGetExtensionSupport(
+        AGSContext*                   context,
+        unsigned int*                 extensionsSupported) {
+  if (!context || !extensionsSupported)
+    return AGS_INVALID_ARGS;
+  
+  static const std::vector<std::pair<D3D11_VK_EXTENSION, unsigned int>> extPairs = {{
+    { D3D11_VK_EXT_BARRIER_CONTROL,           AGS_DX11_EXTENSION_UAV_OVERLAP },
+    { D3D11_VK_EXT_DEPTH_BOUNDS,              AGS_DX11_EXTENSION_DEPTH_BOUNDS_TEST },
+    { D3D11_VK_EXT_MULTI_DRAW_INDIRECT,       AGS_DX11_EXTENSION_MULTIDRAWINDIRECT },
+    { D3D11_VK_EXT_MULTI_DRAW_INDIRECT_COUNT, AGS_DX11_EXTENSION_MULTIDRAWINDIRECT_COUNTINDIRECT },
+    #if BUILD_VERSION >= AGS_MAKE_VERSION(5, 3, 0)
+    { D3D11_VK_EXT_BARRIER_CONTROL,           AGS_DX11_EXTENSION_UAV_OVERLAP_DEFERRED_CONTEXTS },
+    { D3D11_VK_EXT_DEPTH_BOUNDS,              AGS_DX11_EXTENSION_DEPTH_BOUNDS_DEFERRED_CONTEXTS },
+    { D3D11_VK_EXT_MULTI_DRAW_INDIRECT,       AGS_DX11_EXTENSION_MDI_DEFERRED_CONTEXTS },
+    { D3D11_VK_EXT_MULTI_DRAW_INDIRECT_COUNT, AGS_DX11_EXTENSION_MDI_DEFERRED_CONTEXTS },
+    #endif
+  }};
+  
+  unsigned int extensions = 0;
+  for (auto p : extPairs) {
+    if (context->dxvkDevice->GetExtensionSupport(p.first))
+      extensions |= p.second;
+  }
+
+  *extensionsSupported = extensions;
+  return AGS_SUCCESS;
+}
+
+
+#if BUILD_VERSION >= AGS_MAKE_VERSION(5, 1, 0)
 static AGSReturnCode dxvkCreateDevice(
         AGSContext*                   context,
   const AGSDX11DeviceCreationParams*  creationParams,
@@ -67,23 +98,10 @@ static AGSReturnCode dxvkCreateDevice(
   }
   
   // Gather supported extensions
-  const std::vector<std::pair<D3D11_VK_EXTENSION, unsigned int>> extPairs = {{
-    { D3D11_VK_EXT_BARRIER_CONTROL,           AGS_DX11_EXTENSION_UAV_OVERLAP },
-    { D3D11_VK_EXT_DEPTH_BOUNDS,              AGS_DX11_EXTENSION_DEPTH_BOUNDS_TEST },
-    { D3D11_VK_EXT_MULTI_DRAW_INDIRECT,       AGS_DX11_EXTENSION_MULTIDRAWINDIRECT },
-    { D3D11_VK_EXT_MULTI_DRAW_INDIRECT_COUNT, AGS_DX11_EXTENSION_MULTIDRAWINDIRECT_COUNTINDIRECT },
-    #if BUILD_VERSION >= AGS_MAKE_VERSION(5, 3, 0)
-    { D3D11_VK_EXT_BARRIER_CONTROL,           AGS_DX11_EXTENSION_UAV_OVERLAP_DEFERRED_CONTEXTS },
-    { D3D11_VK_EXT_DEPTH_BOUNDS,              AGS_DX11_EXTENSION_DEPTH_BOUNDS_DEFERRED_CONTEXTS },
-    { D3D11_VK_EXT_MULTI_DRAW_INDIRECT,       AGS_DX11_EXTENSION_MDI_DEFERRED_CONTEXTS },
-    { D3D11_VK_EXT_MULTI_DRAW_INDIRECT_COUNT, AGS_DX11_EXTENSION_MDI_DEFERRED_CONTEXTS },
-    #endif
-  }};
-  
-  for (auto p : extPairs) {
-    if (context->dxvkDevice->GetExtensionSupport(p.first))
-      returnedParams->extensionsSupported |= p.second;
-  }
+  AGSReturnCode ar = dxvkGetExtensionSupport(context, &returnedParams->extensionsSupported);
+
+  if (ar != AGS_SUCCESS)
+    return ar;
   
   std::cerr << "agsDriverExtensionsDX11_CreateDevice() = AGS_SUCCESS" << std::endl;
   return AGS_SUCCESS;
@@ -113,8 +131,43 @@ static AGSReturnCode dxvkDestroyDevice(
   context->dxvkContext = nullptr;
   return AGS_SUCCESS;
 }
+#endif
 
+
+static AGSReturnCode dxvkAcquireDevice(
+        AGSContext*                   context,
+        ID3D11Device*                 device) {
+  if (!context || !device || context->dxvkDevice)
+    return AGS_INVALID_ARGS;
   
+  HRESULT hr = device->QueryInterface(IID_PPV_ARGS(&context->dxvkDevice));
+
+  if (FAILED(hr))
+    return AGS_FAILURE;
+  
+  ID3D11DeviceContext* ctx = nullptr;
+  device->GetImmediateContext(&ctx);
+
+  ctx->QueryInterface(IID_PPV_ARGS(&context->dxvkContext));
+  ctx->Release();
+  return AGS_SUCCESS;
+}
+
+
+static AGSReturnCode dxvkReleaseDevice(
+        AGSContext*                   context) {
+  if (!context || !context->dxvkDevice)
+    return AGS_INVALID_ARGS;
+  
+  context->dxvkDevice->Release();
+  context->dxvkDevice = nullptr;
+
+  context->dxvkContext->Release();
+  context->dxvkContext = nullptr;
+  return AGS_SUCCESS;
+}
+
+
 static AGSReturnCode dxvkBeginUAVOverlap(
         ID3D11VkExtDevice*            device,
         ID3D11VkExtContext*           context) {
@@ -280,7 +333,7 @@ AMD_AGS_API AGSReturnCode __stdcall agsDriverExtensionsDX11_DestroyDevice(
     immediateContext,
     immediateContextReferences);
 }
-#else
+#elif BUILD_VERSION >= AGS_MAKE_VERSION(5, 1, 0)
 AMD_AGS_API AGSReturnCode __stdcall agsDriverExtensionsDX11_CreateDevice(
         AGSContext*                   context,
         AGSDX11DeviceCreationParams*  creationParams,
@@ -300,6 +353,24 @@ AMD_AGS_API AGSReturnCode __stdcall agsDriverExtensionsDX11_DestroyDevice(
   return dxvkDestroyDevice(context,
     device, deviceReferences,
     nullptr, nullptr);
+}
+#else
+AMD_AGS_API AGSReturnCode __stdcall agsDriverExtensionsDX11_Init(
+        AGSContext*                   context,
+        ID3D11Device*                 device,
+        unsigned int                  uavSlot,
+        unsigned int*                 extensionsSupported) {
+  AGSReturnCode ar = dxvkAcquireDevice(context, device);
+
+  if (ar == AGS_SUCCESS && extensionsSupported)
+    ar = dxvkGetExtensionSupport(context, extensionsSupported);
+  
+  return ar;
+}
+
+AMD_AGS_API AGSReturnCode __stdcall agsDriverExtensionsDX11_DeInit(
+        AGSContext*                   context) {
+  return dxvkReleaseDevice(context);
 }
 #endif
 
