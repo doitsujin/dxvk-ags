@@ -1,6 +1,6 @@
 ## AGS D3D11 extensions for [DXVK](https://github.com/doitsujin/dxvk)
 
-Provides a rudimentary proof-of-concept implementation of some of the D3D11 extensions available in the [AMD AGS SDK](https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK) for DXVK. Requires the latest [master](https://github.com/doitsujin/dxvk/tree/master) branch of DXVK.
+Provides a rudimentary proof-of-concept implementation of some of the D3D11 extensions available in the [AMD AGS SDK](https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK) for DXVK. Requires DXVK Version 1.2 or later.
 
 The currently supported features include:
 - Depth bounds test
