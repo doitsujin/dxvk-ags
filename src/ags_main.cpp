@@ -74,6 +74,19 @@ AMD_AGS_API AGSReturnCode __stdcall agsDeInit(
 }
 
 
+#if BUILD_VERSION <= AGS_MAKE_VERSION(5, 1, 0)
+AMD_AGS_API AGSReturnCode __stdcall agsGetCrossfireGPUCount(
+        AGSContext*                   context,
+        int*                          numGPUs) {
+  if (!numGPUs || !context)
+    return AGS_INVALID_ARGS;
+
+  *numGPUs = 1;
+  return AGS_SUCCESS;
+}
+#endif
+
+
 AMD_AGS_API AGSReturnCode __stdcall agsSetDisplayMode(
         AGSContext*                   context,
         int                           deviceIndex,
