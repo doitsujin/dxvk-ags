@@ -1,0 +1,3 @@
+#pragma once
+
+#define AGS_INCLUDE_HEADER "../inc/amd_ags_@version@.h"

@@ -11,8 +11,10 @@
 #include <utility>
 #include <vector>
 
+#include "build.h"
+
 // Change to build different version
-#include "../inc/amd_ags_5.2.h"
+#include AGS_INCLUDE_HEADER
 
 #include "./dxvk/dxvk_interfaces.h"
 

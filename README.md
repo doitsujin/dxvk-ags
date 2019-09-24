@@ -23,7 +23,11 @@ ninja install
 
 The compiled DLL will be located in `/your/path/bin/amd_ags_x64.dll`.
 
-Currently there is no convenient way to select the AGS version to build without modifying the source code. The version to build can be changed by changing the `amd_ags_5.2.h` include in `src/ags_private.h` to one of the files in the `inc` directory.
+A different version can be built by setting the `ags-version` build option as follows:
+```
+cd build
+meson configure -Dags-version=<version>
+```
 
 32-bit builds, as well as winelib builds and MSVC are not supported, and will not be supported due to the experimental nature of the project.
 
