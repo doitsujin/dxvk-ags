@@ -74,6 +74,17 @@ AMD_AGS_API AGSReturnCode __stdcall agsDeInit(
 }
 
 
+#if BUILD_VERSION >= AGS_MAKE_VERSION(5, 3, 0)
+AMD_AGS_API AGSDriverVersionResult __stdcall agsCheckDriverVersion(
+  const char*                         radeonSoftwareVersionReported,
+        unsigned int                  radeonSoftwareVersionRequired) {
+  // Unconditionally fake success
+  return AGS_SOFTWAREVERSIONCHECK_OK;
+}
+#endif
+
+
+
 #if BUILD_VERSION < AGS_MAKE_VERSION(5, 2, 0)
 AMD_AGS_API AGSReturnCode __stdcall agsGetCrossfireGPUCount(
         AGSContext*                   context,
